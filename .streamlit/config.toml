@@ -1,0 +1,15 @@
+[theme]
+# ✅ メインカラー（ボタン・スライダー・強調部分）
+primaryColor = "#0D6EFD"            # 明るめの青 (Bootstrap風)
+
+# ✅ ページ全体の背景色
+backgroundColor = "#F8F9FA"         # 薄いグレーで清潔感
+
+# ✅ コンテンツ部分（カード・テーブルなど）の背景
+secondaryBackgroundColor = "#FFFFFF" # 真っ白で見やすい
+
+# ✅ 文字色（黒で読みやすく）
+textColor = "#000000"
+
+# ✅ フォントをシンプル＆読みやすく
+font = "sans serif"
