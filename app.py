@@ -11,12 +11,12 @@ import numpy as np
 plt.rcParams['font.family'] = 'IPAexGothic'
 
 st.set_page_config(
-    page_title="🛒 商品クラスタリングアプリ",
+    page_title=" 商品クラスタリングアプリ",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-st.title("🛒 商品クラスタリングアプリ")
+st.title(" 商品クラスタリングアプリ")
 st.write("CSVファイルをアップロードして、商品のクラスタリングを行います。")
 
 # ファイルアップロード
@@ -25,7 +25,7 @@ uploaded_file = st.file_uploader("CSVファイルを選択してください", t
 if uploaded_file is not None:
     # CSV読み込み
     df = pd.read_csv(uploaded_file)
-    st.write("### 📊 データプレビュー")
+    st.write("###  データプレビュー")
     st.dataframe(df.head())
 
     # 数値列を抽出
@@ -45,7 +45,7 @@ if uploaded_file is not None:
         clusters = kmeans.fit_predict(X_scaled)
         df["Cluster"] = clusters
 
-        st.write("### 🧩 クラスタリング結果")
+        st.write("###  クラスタリング結果")
         st.dataframe(df)
 
         # グラフ表示（2次元）
