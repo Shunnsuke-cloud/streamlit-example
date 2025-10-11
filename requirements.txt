@@ -2,3 +2,5 @@ streamlit
 pandas
 scikit-learn
 matplotlib
+japanize_matplotlib
+numpy

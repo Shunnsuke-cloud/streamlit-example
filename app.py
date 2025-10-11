@@ -1,78 +1,216 @@
 
+
 import streamlit as st
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, KMeans
-from sklearn.metrics import silhouette_samples, silhouette_score
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score, silhouette_samples
 import matplotlib.pyplot as plt
+import japanize_matplotlib
+import matplotlib.cm as cm
 
-# 日本語フォント指定（Python 3.13 対応）
-plt.rcParams['font.family'] = 'IPAexGothic'
+st.set_page_config(page_title=" 商品クラスタリング（Silhouette可視化）", layout="wide")
 
-st.title(" 商品クラスタリングアプリ（日本語対応）")
-st.write("CSVファイルをアップロードして商品のクラスタリングを行います。")
+# --- ヘッダー ---
+st.markdown("<h1 style='text-align:center; margin-bottom:6px;'>🛒 商品クラスタリングアプリ</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#4b5563; margin-top:0;'>CSVをアップロードして数値列を選択、k-meansでクラスタリング。SilhouetteスコアとSilhouetteプロットで評価します。</p>", unsafe_allow_html=True)
+st.write("---")
 
-# CSVアップロード
-uploaded_file = st.file_uploader("CSVファイルを選択してください", type=["csv"])
+# --- 入力カード風レイアウト ---
+with st.container():
+    left_col, right_col = st.columns([2, 1], gap="large")
 
+    with left_col:
+        uploaded_file = st.file_uploader(" CSVファイルを選択してください", type=["csv"])
+        st.write("ヒント: 最低でも数値列が2列必要です（クラスタリング＋可視化のため）。")
+
+    with right_col:
+        n_clusters = st.slider(" クラスタ数（k）", 2, 10, 3)
+        run_btn = st.button("▶ クラスタリング実行")
+
+st.write("---")
+
+# ヘルパー関数
+def prepare_data(df, selected_cols):
+    X = df[selected_cols].astype(float).copy()
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    return X_scaled, scaler
+
+def compute_kmeans(X_scaled, k):
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init='auto')
+    labels = kmeans.fit_predict(X_scaled)
+    return kmeans, labels
+
+def silhouette_summary(X_scaled, labels):
+    # 平均スコア
+    score = silhouette_score(X_scaled, labels)
+    return score
+
+def plot_silhouette(X_scaled, labels, n_clusters):
+    # Silhouette plot: sklearn example を参照
+    silhouette_vals = silhouette_samples(X_scaled, labels)
+    y_lower = 10
+    fig, ax = plt.subplots(figsize=(8, 6))
+    cmap = cm.get_cmap("nipy_spectral")
+    for i in range(n_clusters):
+        ith_cluster_vals = silhouette_vals[labels == i]
+        ith_cluster_vals.sort()
+        size_cluster_i = ith_cluster_vals.shape[0]
+        y_upper = y_lower + size_cluster_i
+
+        color = cmap(float(i) / n_clusters)
+        ax.fill_betweenx(np.arange(y_lower, y_upper),
+                         0, ith_cluster_vals,
+                         facecolor=color, edgecolor=color, alpha=0.7)
+        ax.text(-0.05, y_lower + 0.5 * size_cluster_i, f"Cluster {i}", fontsize=9, va='center')
+
+        y_lower = y_upper + 10  # 10 for spacing between clusters
+
+    ax.set_xlabel("Silhouette coefficient 値")
+    ax.set_ylabel("クラスタごとのサンプル")
+    ax.set_yticks([])  # y軸ラベルは不要
+    ax.set_xlim([-0.1, 1])
+    ax.set_title("Silhouette Plot（クラスタ別）")
+    ax.axvline(x=np.mean(silhouette_vals), color="red", linestyle="--", label=f"平均 = {np.mean(silhouette_vals):.3f}")
+    ax.legend(loc="upper right")
+    fig.tight_layout()
+    return fig
+
+def plot_scatter_pca(X_scaled, labels, selected_cols):
+    # 2次元に落として散布図（PCA）
+    if X_scaled.shape[1] >= 2:
+        pca = PCA(n_components=2)
+        X_2 = pca.fit_transform(X_scaled)
+        pc1_name = "PC1"
+        pc2_name = "PC2"
+    else:
+        # もし1次元しかないならそのままプロット（X軸 = 特徴、Y軸 = 0）
+        X_2 = np.hstack([X_scaled, np.zeros((X_scaled.shape[0], 1))])
+        pc1_name = selected_cols[0]
+        pc2_name = ""
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+    cmap = cm.get_cmap("tab10")
+    for i in np.unique(labels):
+        idx = labels == i
+        ax.scatter(X_2[idx, 0], X_2[idx, 1], s=80, alpha=0.7, label=f"Cluster {i}", color=cmap(int(i) % 10))
+    ax.set_xlabel(pc1_name)
+    ax.set_ylabel(pc2_name if pc2_name else "")
+    ax.set_title("クラスタ別散布図（PCA2次元）")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+# --- メイン処理 ---
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.write("###  データプレビュー")
+    try:
+        df = pd.read_csv(uploaded_file)
+    except Exception as e:
+        st.error(f"CSVの読み込みでエラーが発生しました: {e}")
+        st.stop()
+
+    st.markdown("###  データプレビュー")
     st.dataframe(df.head())
 
-    # 数値列抽出
-    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
-    if len(numeric_cols) < 2:
-        st.warning("クラスタリングには数値列が2列以上必要です。")
-    else:
-        # 標準化
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(df[numeric_cols])
+    # 数値列の候補を抽出
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    if len(numeric_cols) == 0:
+        st.warning("このCSVには数値列が含まれていません。数値列が必要です。")
+        st.stop()
 
-        # クラスタ数選択
-        n_clusters = st.slider("クラスタ数を選択", 2, 10, 3)
+    st.markdown("###  クラスタリング対象の数値列を選択してください")
+    selected_cols = st.multiselect("数値列を複数選択（少なくとも2列推奨）", options=numeric_cols, default=numeric_cols[:2])
 
-        # KMeans
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        clusters = kmeans.fit_predict(X_scaled)
-        df["Cluster"] = clusters
+    if len(selected_cols) < 1:
+        st.warning("少なくとも1つの数値列を選択してください。")
+        st.stop()
 
-        st.write("###  クラスタリング結果")
-        st.dataframe(df)
+    # 自動で実行するかボタンで実行するか
+    if run_btn:
+        # 必要に応じてチェック
+        if len(selected_cols) < 1:
+            st.error("数値列を1つ以上選択してください。")
+            st.stop()
 
-        # 2次元散布図
-        if X_scaled.shape[1] >= 2:
-            fig, ax = plt.subplots()
-            scatter = ax.scatter(X_scaled[:, 0], X_scaled[:, 1], c=clusters, cmap='viridis')
-            ax.set_xlabel(numeric_cols[0])
-            ax.set_ylabel(numeric_cols[1])
-            ax.set_title("商品クラスタリング結果")
-            st.pyplot(fig)
+        # データ準備
+        try:
+            X_scaled, scaler = prepare_data(df, selected_cols)
+        except Exception as e:
+            st.error(f"データの前処理に失敗しました: {e}")
+            st.stop()
 
-        # Silhouetteスコア
-        silhouette_avg = silhouette_score(X_scaled, clusters)
-        st.write(f"### シルエットスコア: {silhouette_avg:.3f}")
+        # k がサンプル数以上にならないようチェック
+        if n_clusters >= X_scaled.shape[0]:
+            st.error("クラスタ数 k がサンプル数以上です。k を小さくしてください。")
+            st.stop()
 
-        # Silhouetteプロット
-        fig_sil, ax_sil = plt.subplots()
-        sample_silhouette_values = silhouette_samples(X_scaled, clusters)
-        y_lower = 10
-        for i in range(n_clusters):
-            ith_cluster_silhouette_values = sample_silhouette_values[clusters == i]
-            ith_cluster_silhouette_values.sort()
-            size_cluster_i = ith_cluster_silhouette_values.shape[0]
-            y_upper = y_lower + size_cluster_i
-            color = plt.cm.viridis(float(i) / n_clusters)
-            ax_sil.fill_betweenx(
-                range(y_lower, y_upper),
-                0, ith_cluster_silhouette_values,
-                facecolor=color, edgecolor=color, alpha=0.7
-            )
-            ax_sil.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
-            y_lower = y_upper + 10
+        # クラスタリング
+        try:
+            kmeans, labels = compute_kmeans(X_scaled, n_clusters)
+        except Exception as e:
+            st.error(f"KMeans 実行時にエラーが発生しました: {e}")
+            st.stop()
 
-        ax_sil.set_xlabel("シルエット係数")
-        ax_sil.set_ylabel("クラスタ")
-        ax_sil.set_title("Silhouetteプロット")
-        ax_sil.axvline(x=silhouette_avg, color="red", linestyle="--")
-        st.pyplot(fig_sil)
+        # Silhouetteスコア（平均）
+        try:
+            sil_score = silhouette_score(X_scaled, labels)
+        except Exception as e:
+            st.error(f"Silhouette スコアの計算でエラー: {e}")
+            sil_score = None
 
+        # 結果表示（上部）
+        st.markdown("### ✅ 結果サマリ")
+        cols = st.columns([1, 2])
+        with cols[0]:
+            if sil_score is not None:
+                # コメント付け
+                if sil_score >= 0.5:
+                    comment = "✅ 良好なクラスタリングです！"
+                elif sil_score >= 0.25:
+                    comment = "⚠ そこそこ分かれていますが改善の余地があります。"
+                else:
+                    comment = "❌ クラスタがうまく分かれていない可能性があります。"
+
+                st.metric(label="Silhouette スコア（平均）", value=f"{sil_score:.3f}", delta=None)
+                st.caption(comment)
+            else:
+                st.write("Silhouette スコアを計算できませんでした。")
+
+        with cols[1]:
+            st.write("#### 🔢 選択した特徴量")
+            st.write(", ".join(selected_cols))
+
+        # DataFrame にクラスタ列を追加して表示（元の列は保持）
+        df_result = df.copy()
+        df_result["Cluster"] = labels
+        st.markdown("### 🧩 クラスタリング結果（先頭 20 行）")
+        st.dataframe(df_result.head(20))
+
+        # プロット（Silhouette Plot と 散布図）を横並びで表示
+        st.markdown("### 📈 可視化")
+        fig1 = None
+        fig2 = None
+        try:
+            fig1 = plot_silhouette(X_scaled, labels, n_clusters)
+        except Exception as e:
+            st.warning(f"Silhouetteプロットの描画に失敗しました: {e}")
+        try:
+            fig2 = plot_scatter_pca(X_scaled, labels, selected_cols)
+        except Exception as e:
+            st.warning(f"散布図の描画に失敗しました: {e}")
+
+        viz_col1, viz_col2 = st.columns(2)
+        with viz_col1:
+            if fig1 is not None:
+                st.pyplot(fig1)
+        with viz_col2:
+            if fig2 is not None:
+                st.pyplot(fig2)
+
+        st.success("クラスタリングが完了しました。必要ならクラスタ数を変更して再実行してください。")
+
+else:
+    st.info("まずはCSVファイルをアップロードして、数値列を選択してください。")
