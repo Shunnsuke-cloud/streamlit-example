@@ -88,8 +88,9 @@ if uploaded_file is not None:
             ax2.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
             y_lower = y_upper + 10  # 次のクラスタの位置
 
-        ax2.set_xlabel("シルエット係数")
-        ax2.set_ylabel("クラスタ")
-        ax2.set_title("Silhouette プロット")
+        ax2.set_xlabel("Silhouette Coefficient")
+        ax2.set_ylabel("Cluster")
+        ax2.set_title("Silhouette Plot")
+
         ax2.axvline(x=silhouette_avg, color="red", linestyle="--")
         st.pyplot(fig2)
