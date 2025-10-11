@@ -7,8 +7,12 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 import matplotlib.pyplot as plt
 import numpy as np
 
-# 日本語フォント設定（Python 3.12 対応）
-plt.rcParams['font.family'] = 'Noto Sans JP'
+for font in ["Yu Gothic", "Meiryo", "MS Gothic", "Noto Sans JP", "DejaVu Sans"]:
+    try:
+        plt.rcParams["font.family"] = font
+        break
+    except:
+        pass
 plt.rcParams['axes.unicode_minus'] = False
 
 st.set_page_config(
