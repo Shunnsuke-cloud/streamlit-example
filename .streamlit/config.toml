@@ -13,3 +13,12 @@ textColor = "#000000"
 
 # ✅ フォントをシンプル＆読みやすく
 font = "sans serif"
+
+[server]
+headless = true
+port = $PORT
+enableCORS = false
+enableXsrfProtection = false
+
+[python]
+version = "3.12"
