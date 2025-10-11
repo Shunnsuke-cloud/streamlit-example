@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # 日本語フォント設定（Python 3.12 対応）
-plt.rcParams['font.family'] = 'IPAexGothic'
+plt.rcParams['font.family'] = 'Noto Sans JP'
+plt.rcParams['axes.unicode_minus'] = False
 
 st.set_page_config(
     page_title=" 商品クラスタリングアプリ",
