@@ -85,21 +85,21 @@ def estimate_optimal_clusters(X_scaled):
             with col1:
                 fig_elbow, ax_elbow = plt.subplots()
                 ax_elbow.plot(K_RANGE, distortions, marker='o')
-                ax_elbow.set_xlabel("クラスタ数 (k)")
-                ax_elbow.set_ylabel("SSE (歪み)")
-                ax_elbow.set_title("エルボー法による最適クラスタ数の検討")
+                ax_elbow.set_xlabel("Number of clusters (k)")
+                ax_elbow.set_ylabel("SSE (Distortion)")
+                ax_elbow.set_title("Elbow Method for Optimal Number of Clusters")
                 st.pyplot(fig_elbow)
                 st.write("グラフの「肘」のように見える部分が最適なクラスタ数の候補です。")
             
             with col2:
                 fig_sil, ax_sil = plt.subplots()
                 ax_sil.plot(K_RANGE, silhouette_scores, marker='o')
-                ax_sil.set_xlabel("クラスタ数 (k)")
-                ax_sil.set_ylabel("シルエットスコア")
-                ax_sil.set_title("シルエットスコアによる最適クラスタ数の検討")
+                ax_sil.set_xlabel("Number of clusters (k)")
+                ax_sil.set_ylabel("Silhouette Score")
+                ax_sil.set_title("Silhouette Score for Optimal Number of Clusters")
                 st.pyplot(fig_sil)
                 best_k_by_silhouette = K_RANGE[np.argmax(silhouette_scores)]
-                st.write(f"シルエットスコアが最も高いクラスタ数は **{best_k_by_silhouette}** です。")
+                st.write(f"Silhouette Scoreが最も高いクラスタ数は **{best_k_by_silhouette}** です。")
 
 def run_clustering(X_scaled, n_clusters):
     """K-meansクラスタリングを実行する"""
