@@ -183,7 +183,7 @@ def main():
     st.title("商品クラスタリングアプリ")
     st.write("CSVファイルをアップロードして、商品のクラスタリングを行います。")
 
-    st.sidebar.header("設定")
+    st.sidebar.header("操作パネル")
     uploaded_file = st.sidebar.file_uploader("1. CSVファイルを選択", type=["csv"])
 
     if uploaded_file:
