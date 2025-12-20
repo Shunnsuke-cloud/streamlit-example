@@ -167,9 +167,9 @@ def display_results(df_original, df_clustered, X_scaled, selected_cols, clusters
             ax_sil_plot.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
             y_lower = y_upper + 10
 
-        ax_sil_plot.set_xlabel("シルエット係数")
-        ax_sil_plot.set_ylabel("クラスタ")
-        ax_sil_plot.set_title("シルエットプロット")
+        ax_sil_plot.set_xlabel("Silhouette Coefficient")
+        ax_sil_plot.set_ylabel("Cluster")
+        ax_sil_plot.set_title("Silhouette Plot")
         ax_sil_plot.axvline(x=silhouette_avg, color="red", linestyle="--")
         st.pyplot(fig_sil_plot)
 
